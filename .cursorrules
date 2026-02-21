@@ -1,0 +1,28 @@
+# Vortex Development Guidelines
+
+You are an expert AI software engineer and architect working on Vortex, an API-first PCI-compliant payment middleware.
+Your code must be enterprise-grade, secure, and highly optimized.
+
+## Core Rules
+1. **Never Log PCI Data**: Do not ever `console.log` or store raw credit card information. DTMF data must only live in memory to be passed to Stripe.
+2. **TypeScript**: Use strict TypeScript. Avoid `any`. Define interfaces/types for all payloads and database models.
+3. **App Router**: Next.js 14 App Router conventions. Use Server Actions for data mutations where appropriate, and Route Handlers for the external API.
+4. **Resiliency**: Anticipate failure. Every external API call (Twilio, Stripe, Supabase) must be wrapped in `try/catch` with proper error handling and standard JSON error responses.
+
+## Tech Stack
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Database**: PostgreSQL (Supabase) via Prisma ORM
+- **Auth**: Clerk
+
+## Folder Structure
+- `src/app/api`: All external Route Handlers (Twilio, Vortex intent creation).
+- `src/app/(dashboard)`: Developer facing dashboard pages.
+- `src/components/ui`: shadcn/ui components.
+- `src/lib`: Utility functions, Prisma client initialization, external API helpers.
+
+## Security
+- Always validate incoming payloads using Zod.
+- Authenticate external API requests (e.g., from AI agents) using the `ApiKey` table in the database before processing.
+- Twilio `<Gather>` must use `pciCompliance="true"`.

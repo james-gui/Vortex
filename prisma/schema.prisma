@@ -1,0 +1,75 @@
+// Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id                        String            @id @default(uuid())
+  name                      String
+  stripe_connect_account_id String?
+  onboarding_complete       Boolean           @default(false)
+  created_at                DateTime          @default(now())
+
+  api_keys                  ApiKey[]
+  transactions              Transaction[]
+  webhook_endpoints         WebhookEndpoint[]
+
+  @@map("organizations")
+}
+
+model ApiKey {
+  id            String       @id @default(uuid())
+  org_id        String
+  name          String
+  key_hashed    String
+  prefix        String
+  is_live       Boolean      @default(false)
+  last_used_at  DateTime?
+  created_at    DateTime     @default(now())
+
+  organization  Organization @relation(fields: [org_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id])
+  @@index([key_hashed])
+  @@map("api_keys")
+}
+
+model Transaction {
+  id             String       @id @default(uuid())
+  org_id         String
+  amount         Int
+  currency       String
+  status         String       // pending, succeeded, failed, canceled
+  stripe_pi_id   String?
+  error_code     String?
+  error_message  String?
+  metadata       Json?
+  created_at     DateTime     @default(now())
+  completed_at   DateTime?
+
+  organization   Organization @relation(fields: [org_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id])
+  @@index([stripe_pi_id])
+  @@map("transactions")
+}
+
+model WebhookEndpoint {
+  id           String       @id @default(uuid())
+  org_id       String
+  url          String
+  secret       String
+  active       Boolean      @default(true)
+  created_at   DateTime     @default(now())
+
+  organization Organization @relation(fields: [org_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id])
+  @@map("webhook_endpoints")
+}
