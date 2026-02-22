@@ -8,38 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowRight, CreditCard, Copy, CheckCircle2, Activity, Plus } from "lucide-react";
 import { revalidatePath } from "next/cache";
 
-// Server action to create a new API Key
-async function generateApiKey(formData: FormData) {
-    "use server";
-    const user = await currentUser();
-    if (!user) throw new Error("Unauthorized");
-
-    let org = await prisma.organization.findFirst({
-        where: { name: user.id }
-    });
-
-    if (!org) {
-        org = await prisma.organization.create({
-            data: { name: user.id }
-        });
-    }
-
-    const name = formData.get("name") as string || "Default API Key";
-    const key_hashed = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const prefix = "vtx_live_" + key_hashed.substring(0, 8);
-
-    await prisma.apiKey.create({
-        data: {
-            org_id: org.id,
-            name,
-            key_hashed,
-            prefix,
-            is_live: true,
-        }
-    });
-
-    revalidatePath("/dashboard");
-}
+import NewKeyButton from "./NewKeyButton";
 
 export default async function DashboardPage() {
     const user = await currentUser();
@@ -118,12 +87,7 @@ export default async function DashboardPage() {
                 <div className="lg:col-span-1 flex flex-col gap-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-semibold text-white">API Keys</h2>
-                        <form action={generateApiKey}>
-                            <Button size="sm" variant="outline" className="h-8 gap-1.5 border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer">
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>New Key</span>
-                            </Button>
-                        </form>
+                        <NewKeyButton />
                     </div>
 
                     <Card className="border-zinc-800 bg-black shadow-lg">
@@ -141,13 +105,10 @@ export default async function DashboardPage() {
                                                 Live
                                             </Badge>
                                         </div>
-                                        <div className="flex items-center justify-between bg-zinc-900/80 rounded-md p-2 border border-zinc-800">
-                                            <code className="text-sm font-mono text-zinc-400 ml-1">
-                                                {key.prefix}...{key.key_hashed.slice(-4)}
+                                        <div className="flex items-center justify-between overflow-hidden bg-zinc-900/80 rounded-md p-2 border border-zinc-800 w-full">
+                                            <code className="text-sm font-mono text-zinc-500 ml-1 block truncate w-full">
+                                                {key.prefix}...{key.key_hashed.slice(-6)}
                                             </code>
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer">
-                                                <Copy className="w-3.5 h-3.5" />
-                                            </Button>
                                         </div>
                                         <div className="text-xs text-zinc-600 mt-1">
                                             Created {new Date(key.created_at).toLocaleDateString()}
@@ -194,8 +155,8 @@ export default async function DashboardPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className={`font-normal ${tx.status === 'succeeded' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' :
-                                                        tx.status === 'failed' ? 'border-red-500/30 text-red-400 bg-red-500/10' :
-                                                            'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                                                    tx.status === 'failed' ? 'border-red-500/30 text-red-400 bg-red-500/10' :
+                                                        'border-blue-500/30 text-blue-400 bg-blue-500/10'
                                                     }`}>
                                                     {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
                                                 </Badge>

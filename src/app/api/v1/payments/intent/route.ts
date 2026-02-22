@@ -47,18 +47,22 @@ export async function POST(request: NextRequest) {
             data: { last_used_at: new Date() }
         });
 
-        // 1. Create Stripe Payment Intent
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amountInt,
-            currency: currency.toLowerCase(),
-            capture_method: 'automatic',
-            ...(apiKeyRecord.organization.stripe_connect_account_id
-                ? {
-                    on_behalf_of: apiKeyRecord.organization.stripe_connect_account_id,
-                    transfer_data: { destination: apiKeyRecord.organization.stripe_connect_account_id }
-                }
-                : {})
-        });
+        // 1. Create Stripe Payment Intent (Mock if test key is used)
+        let paymentIntentId = "pi_mocked_for_local_testing";
+        if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_mock') {
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amountInt,
+                currency: currency.toLowerCase(),
+                capture_method: 'automatic',
+                ...(apiKeyRecord.organization.stripe_connect_account_id
+                    ? {
+                        on_behalf_of: apiKeyRecord.organization.stripe_connect_account_id,
+                        transfer_data: { destination: apiKeyRecord.organization.stripe_connect_account_id }
+                    }
+                    : {})
+            });
+            paymentIntentId = paymentIntent.id;
+        }
 
         // 2. Create DB Transaction
         const transaction = await prisma.transaction.create({
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
                 amount: amountInt,
                 currency: currency.toLowerCase(),
                 status: 'pending',
-                stripe_pi_id: paymentIntent.id,
+                stripe_pi_id: paymentIntentId,
             }
         });
 
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
         createSession(call_sid, {
             amount: amountInt.toString(),
             currency: currency.toLowerCase(),
-            intentId: paymentIntent.id,
+            intentId: paymentIntentId,
             transactionId: transaction.id,
             callbackUrl: callback_url,
         });

@@ -17,7 +17,9 @@ export interface TwilioSession {
 // In-memory store: Map CallSid -> Session
 // Note: In a true multi-instance production environment, this would be backed by Redis or similar
 // with strict TTLs, but for this PRD scope an in-memory Map handles the core flow correctly without DB logging.
-const sessions = new Map<string, TwilioSession>();
+const globalForSessions = globalThis as unknown as { sessionsMap: Map<string, TwilioSession> };
+const sessions = globalForSessions.sessionsMap || new Map<string, TwilioSession>();
+if (process.env.NODE_ENV !== 'production') globalForSessions.sessionsMap = sessions;
 
 export function getSession(callSid: string): TwilioSession | undefined {
     return sessions.get(callSid);
